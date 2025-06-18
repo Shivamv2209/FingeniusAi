@@ -137,3 +137,22 @@ def compare_stocks(req: CompareRequest):
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/historical/{ticker}")
+def get_historical_prices(ticker: str):
+    import pandas as pd
+
+    hist_path = os.path.join(DATA_DIR, "historical_prices.csv")
+
+    if not os.path.exists(hist_path):
+        raise HTTPException(status_code=404, detail="Historical price data not available")
+
+    df = pd.read_csv(hist_path)
+
+    # Filter for the requested ticker (case-insensitive)
+    df = df[df["ticker"].str.upper() == ticker.upper()].sort_values("date")
+
+    if df.empty:
+        raise HTTPException(status_code=404, detail="No historical data found for this ticker")
+
+    return df[["date", "price"]].to_dict(orient="records")
